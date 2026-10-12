@@ -40,6 +40,17 @@ class VisualSearchEngine:
             saved_model = str(index["model_name"].item())
             saved_pretrained = str(index["pretrained"].item())
 
+        if self.embeddings.ndim != 2:
+            raise ValueError("Index embeddings must be a 2D matrix.")
+
+        if len(self.embeddings) != len(self.paths):
+            raise ValueError(
+                "Number of embeddings does not match number of image paths."
+            )
+
+        if self.embeddings.shape[1] == 0:
+            raise ValueError("Index embeddings cannot have zero dimensions.")
+
         # Prevent querying with a model different from the index model.
         if saved_model != MODEL_NAME or saved_pretrained != PRETRAINED:
             raise ValueError("Search model does not match the index model.")
@@ -63,23 +74,42 @@ class VisualSearchEngine:
         norm = np.linalg.norm(vector, axis=-1, keepdims=True)
         return vector / np.maximum(norm, 1e-12)
 
+    
     def _rank(self, query_embedding, top_k, exclude_path=None):
         if top_k < 1:
             raise ValueError("top_k must be at least 1.")
 
-        # Normalized vectors make dot product equivalent to cosine similarity.
-        scores = self.embeddings @ query_embedding.reshape(-1)
+        if self.embeddings.ndim != 2:
+            raise ValueError("Index embeddings must be a 2D matrix.")
+
+        query_embedding = np.asarray(query_embedding).reshape(-1)
+
+        if query_embedding.size != self.embeddings.shape[1]:
+            raise ValueError(
+                "Query embedding dimension does not match index."
+            )
+
+        scores = self.embeddings @ query_embedding
 
         if exclude_path is not None:
             excluded = Path(exclude_path).expanduser().resolve()
 
             for i, relative_path in enumerate(self.paths):
                 indexed_path = (ROOT / relative_path).resolve()
+
                 if indexed_path == excluded:
                     scores[i] = -np.inf
 
-        k = min(top_k, len(scores))
-        candidate_indices = np.argpartition(scores, -k)[-k:]
+        valid_indices = np.flatnonzero(np.isfinite(scores))
+        k = min(top_k, len(valid_indices))
+
+        if k == 0:
+            return []
+
+        candidate_indices = valid_indices[
+            np.argpartition(scores[valid_indices], -k)[-k:]
+        ]
+
         candidate_indices = candidate_indices[
             np.argsort(scores[candidate_indices])[::-1]
         ]
@@ -90,7 +120,6 @@ class VisualSearchEngine:
                 "score": float(scores[i]),
             }
             for i in candidate_indices
-            if np.isfinite(scores[i])
         ]
 
     def search_by_text(self, text, top_k=10):
