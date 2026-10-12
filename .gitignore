@@ -1,0 +1,85 @@
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# =========================
+# Virtual environments
+# =========================
+.venv/
+venv/
+env/
+ENV/
+
+# =========================
+# Environment variables / secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# IDEs and operating system
+# =========================
+.vscode/
+.idea/
+.DS_Store
+.AppleDouble
+Thumbs.db
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Datasets
+# =========================
+dataset/
+datasets/
+data/raw/
+data/external/
+
+# =========================
+# Generated computer vision artifacts
+# =========================
+artifacts/
+features/
+*.pkl
+*.pickle
+*.joblib
+
+# NumPy arrays and model weights
+*.npy
+*.npz
+*.pt
+*.pth
+*.onnx
+
+# =========================
+# Logs and temporary files
+# =========================
+*.log
+logs/
+tmp/
+temp/
+
+# =========================
+# Evaluation outputs
+# =========================
+results/*.csv
+results/*.json
+results/*.txt
+results/*.pkl
+
+# =========================
+# Local configuration
+# =========================
+.DS_Store?
