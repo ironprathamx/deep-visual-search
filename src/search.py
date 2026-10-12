@@ -138,7 +138,7 @@ class VisualSearchEngine:
 
         return self._rank(query_embedding, top_k)
 
-    def search_by_image(self, image_path, top_k=10):
+    def search_by_image(self, image_path, top_k=10, INCLUDE_QUERY=False):
         image_path = Path(image_path).expanduser().resolve()
 
         if not image_path.is_file():
@@ -156,11 +156,10 @@ class VisualSearchEngine:
             ).clamp_min(1e-12)
 
         query_embedding = features[0].cpu().numpy().astype(np.float32)
-
         return self._rank(
             query_embedding,
             top_k,
-            exclude_path=image_path,
+            exclude_path=None if INCLUDE_QUERY else image_path,
         )
 
 
