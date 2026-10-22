@@ -1,17 +1,10 @@
-
 from pathlib import Path
-import sys
-import tempfile
 
+import requests
 import streamlit as st
 from PIL import Image
 
-ROOT = Path(__file__).resolve().parents[1]
-
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from src.search import VisualSearchEngine
+API_URL = "http://127.0.0.1:8000"
 
 
 st.set_page_config(
@@ -25,19 +18,6 @@ st.write(
     "Search a collection of images using natural language "
     "or an example image."
 )
-
-
-@st.cache_resource
-def load_engine():
-    return VisualSearchEngine()
-
-
-try:
-    engine = load_engine()
-except Exception as exc:
-    st.error(f"Could not load the search engine: {exc}")
-    st.stop()
-
 
 search_type = st.radio(
     "Search method",
@@ -80,27 +60,34 @@ if search_clicked:
                 st.stop()
 
             with st.spinner("Searching images..."):
-                results = engine.search_by_text(
-                    query_text.strip(),
-                    top_k=top_k,
+                response = requests.post(
+                    f"{API_URL}/search/text",
+                    data={"query": query_text.strip(), "top_k": top_k},
+                    timeout=120,
                 )
+                response.raise_for_status()
+                results = response.json()["results"]
 
         else:
             if uploaded_file is None:
                 st.warning("Upload an image first.")
                 st.stop()
 
-            with tempfile.NamedTemporaryFile(
-                suffix=Path(uploaded_file.name).suffix
-            ) as temp_file:
-                temp_file.write(uploaded_file.getvalue())
-                temp_file.flush()
-
-                with st.spinner("Searching images..."):
-                    results = engine.search_by_image(
-                        temp_file.name,
-                        top_k=top_k,
-                    )
+            with st.spinner("Searching images..."):
+                response = requests.post(
+                    f"{API_URL}/search/image",
+                    files={
+                        "file": (
+                            uploaded_file.name,
+                            uploaded_file.getvalue(),
+                            uploaded_file.type,
+                        )
+                    },
+                    data={"top_k": top_k},
+                    timeout=120,
+                )
+                response.raise_for_status()
+                results = response.json()["results"]
 
         st.session_state["search_results"] = results
         st.session_state["search_query"] = (

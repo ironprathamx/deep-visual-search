@@ -36,7 +36,6 @@ class VisualSearchEngine:
         with np.load(index_path, allow_pickle=False) as index:
             self.embeddings = index["embeddings"].astype(np.float32)
             self.paths = index["paths"].astype(str)
-
             saved_model = str(index["model_name"].item())
             saved_pretrained = str(index["pretrained"].item())
 
@@ -162,15 +161,3 @@ class VisualSearchEngine:
             exclude_path=None if INCLUDE_QUERY else image_path,
         )
 
-
-if __name__ == "__main__":
-    engine = VisualSearchEngine()
-
-    print("\n--- Text-to-image search ---")
-    results = engine.search_by_text("a building with distinctive architecture", top_k=5)
-
-    for rank, result in enumerate(results, start=1):
-        print(
-            f"{rank}. Score: {result['score']:.4f} | "
-            f"{result['path']}"
-        )
