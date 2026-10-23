@@ -3,12 +3,33 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Annotated
-
+from PIL import Image, UnidentifiedImageError
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 
 from src.search import VisualSearchEngine
 
+def validate_image(image_path: Path) -> None:
+    try:
+        with Image.open(image_path) as image:
+            if image.format not in {"JPEG", "PNG", "WEBP"}:
+                raise ValueError("Only JPEG, PNG, and WebP images are supported.")
+            
+            width, height = image.size
+            if width > 10_000 or height > 10_000:
+                raise ValueError(
+                    "Image dimensions must not exceed 10,000 pixels per side."
+                )
+
+            if width * height > 40_000_000:
+                raise ValueError(
+                    "Image must not exceed 40 megapixels."
+                )
+
+            image.verify()
+
+    except (UnidentifiedImageError, OSError) as exc:
+        raise ValueError("The uploaded file is not a valid image.") from exc
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,7 +58,11 @@ async def search_by_text(
     top_k: Annotated[int, Form()] = 10,
 ):
     query = query.strip()
-
+    if len(query) > 500:
+        raise HTTPException(
+            status_code=400,
+            detail="Text query must be 500 characters or fewer.",
+        )
     if not query:
         raise HTTPException(
             status_code=400,
@@ -108,6 +133,7 @@ async def search_by_image(
 
                 temp_file.write(chunk)
 
+        validate_image(temp_path)
         results = await run_in_threadpool(
             app.state.engine.search_by_image,
             temp_path,

@@ -4,8 +4,11 @@ import requests
 import streamlit as st
 from PIL import Image
 
-API_URL = "http://127.0.0.1:8000"
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000").rstrip("/")
 
 st.set_page_config(
     page_title="Deep Visual Search",
